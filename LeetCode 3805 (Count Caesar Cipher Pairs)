@@ -1,0 +1,32 @@
+from collections import Counter
+
+def countCaesarCipherPairs(words):
+    # Dictionary to store the frequency of each canonical representation
+    canonical_counts = Counter()
+    
+    for word in words:
+        if not word:
+            canonical_counts[()] += 1
+            continue
+            
+        # Normalize the word: shift so the first character becomes 'a' (index 0)
+        # We store the relative shifts of every character compared to the first
+        first_ord = ord(word[0])
+        canonical_form = tuple((ord(char) - first_ord) % 26 for char in word)
+        
+        canonical_counts[canonical_form] += 1
+    
+    ans = 0
+    # For every group of similar strings, count pairs: v * (v - 1) / 2
+    for count in canonical_counts.values():
+        if count >= 2:
+            ans += (count * (count - 1)) // 2
+            
+    return ans
+
+# Example usage:
+words1 = ["fusion", "layout"]
+print(f"Example 1 Output: {countCaesarCipherPairs(words1)}") # Expected: 1
+
+words2 = ["ab", "aa", "za", "aa"]
+print(f"Example 2 Output: {countCaesarCipherPairs(words2)}") # Expected: 2
