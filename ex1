@@ -1,0 +1,144 @@
+import math
+
+def affine_cipher(text, a, b, encrypt=True):
+    # Find modular multiplicative inverse of 'a' modulo 26
+    a_inv = -1
+    for i in range(26):
+        if (a * i) % 26 == 1:
+            a_inv = i
+            break
+
+    if a_inv == -1:
+        return f"ERROR: Key A ({a}) must be coprime to 26."
+
+    result = ""
+    text = "".join(filter(str.isalpha, text.upper()))
+    for char in text:
+        x = ord(char) - ord('A')
+        if encrypt:
+            val = (a * x + b) % 26
+        else:
+            val = (a_inv * (x - b)) % 26
+        result += chr((val % 26) + ord('A'))
+    return result
+
+def vigenere_cipher(text, key, encrypt=True):
+    result = ""
+    text = "".join(filter(str.isalpha, text.upper()))
+    key = "".join(filter(str.isalpha, key.upper()))
+
+    if not key:
+        return "ERROR: Keyword is required."
+
+    for i, char in enumerate(text):
+        x = ord(char) - ord('A')
+        k_val = ord(key[i % len(key)]) - ord('A')
+        if encrypt:
+            val = (x + k_val) % 26
+        else:
+            val = (x - k_val + 26) % 26
+        result += chr(val + ord('A'))
+    return result
+
+def main():
+    while True:
+        print("\n--- MENU  ---")
+        print("1. Affine Cipher")
+        print("2. Vigenere Cipher")
+        print("0. Exit")
+
+        choice = input("Select an option: ")
+
+        if choice == '0':
+            print("Exiting... ")
+            break
+
+        if choice not in ['1', '2']:
+            print("Invalid selection. Try again.")
+            continue
+
+        action = input("Action (E: Encrypt, D: Decrypt): ").upper()
+        if action not in ['E', 'D']:
+            print("Invalid action. Use E or D.")
+            continue
+
+        is_enc = (action == 'E')
+        msg = input("Enter Message: ")
+
+        if choice == '1':
+            try:
+                a = int(input("Enter Key A (coprime to 26, e.g., 5, 7, 9): "))
+                b = int(input("Enter Key B: "))
+                print("\nRESULT:", affine_cipher(msg, a, b, is_enc))
+            except ValueError:
+                print("Error: Keys must be integers.")
+
+        elif choice == '2':
+            k = input("Enter Keyword: ")
+            print("\nRESULT:", vigenere_cipher(msg, k, is_enc))
+
+if __name__ == "__main__":
+    main()
+
+[23bcs096@mepcolinux exercise1]$python3 aff_vig.py
+
+--- MENU  ---
+1. Affine Cipher
+2. Vigenere Cipher
+0. Exit
+Select an option: 1
+Action (E: Encrypt, D: Decrypt): attack
+Invalid action. Use E or D.
+
+--- MENU  ---
+1. Affine Cipher
+2. Vigenere Cipher
+0. Exit
+Select an option: 1
+Action (E: Encrypt, D: Decrypt): e
+Enter Message: attack
+Enter Key A (coprime to 26, e.g., 5, 7, 9): 5
+Enter Key B: 10
+
+RESULT: KBBKUI
+
+--- MENU  ---
+1. Affine Cipher
+2. Vigenere Cipher
+0. Exit
+Select an option: 1
+Action (E: Encrypt, D: Decrypt): d
+Enter Message: KBBKUI
+Enter Key A (coprime to 26, e.g., 5, 7, 9): 5
+Enter Key B: 10
+
+RESULT: ATTACK
+
+--- MENU  ---
+1. Affine Cipher
+2. Vigenere Cipher
+0. Exit
+Select an option: 2
+Action (E: Encrypt, D: Decrypt): E
+Enter Message: BALLON
+Enter Keyword: CRYPTOGRAPHY
+
+RESULT: DRJAHB
+
+--- MENU  ---
+1. Affine Cipher
+2. Vigenere Cipher
+0. Exit
+Select an option: 2
+Action (E: Encrypt, D: Decrypt): D
+Enter Message: DRJAHB
+Enter Keyword: CRYPTOGRAPHY
+
+RESULT: BALLON
+
+--- MENU  ---
+1. Affine Cipher
+2. Vigenere Cipher
+0. Exit
+Select an option: 0
+Exiting...
