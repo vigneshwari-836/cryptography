@@ -1,0 +1,104 @@
+import sys
+
+def euclidean_gcd(a, b):
+    # Use absolute values for calculation
+    num1, num2 = abs(a), abs(b)
+
+    # Handle zero case
+    if num1 == 0: return num2
+    if num2 == 0: return num1
+
+    # Ensure num1 is the larger one
+    if num2 > num1:
+        num1, num2 = num2, num1
+
+    print("\n[STEPS] Finding GCD of " + str(num1) + " and " + str(num2) + ":")
+    print("-" * 40)
+
+    step = 1
+    while num2 != 0:
+        quotient = num1 // num2
+        remainder = num1 % num2
+
+        # Plain text display to avoid Unicode errors
+        print(" Step " + str(step) + ": " + str(num1) + " = (" + str(quotient) + " * " + str(num2) + ") + " + str(remainder))
+
+        num1, num2 = num2, remainder
+        step += 1
+
+    return num1
+
+def get_input(prompt):
+    while True:
+        try:
+            line = input(prompt).strip()
+            if not line: continue
+            return int(line)
+        except ValueError:
+            print("Error: Please enter a whole number.")
+        except (EOFError, KeyboardInterrupt):
+            return 0
+
+def main():
+    while True:
+        print("\n" + "="*40)
+        print("      EUCLIDEAN ALGORITHM (GCD)")
+        print("="*40)
+        print(" (Enter '0' to exit)")
+
+        val1 = get_input("Enter first number: ")
+        if val1 == 0:
+            print("Exiting...")
+            break
+
+        val2 = get_input("Enter second number: ")
+
+        # Perform calculation
+        final_gcd = euclidean_gcd(val1, val2)
+
+        # Print final result using plain text only
+        print("-" * 40)
+        print("FINAL GCD VALUE: " + str(final_gcd))
+        print("="*40)
+
+if __name__ == "__main__":
+    main()
+
+[23bcs096@mepcolinux ex3]$python3 e_gcd.py
+
+========================================
+      EUCLIDEAN ALGORITHM (GCD)
+========================================
+ (Enter '0' to exit)
+Enter first number: 32
+Enter second number: 4
+
+[STEPS] Finding GCD of 32 and 4:
+----------------------------------------
+ Step 1: 32 = (8 * 4) + 0
+----------------------------------------
+FINAL GCD VALUE: 4
+========================================
+
+========================================
+      EUCLIDEAN ALGORITHM (GCD)
+========================================
+ (Enter '0' to exit)
+Enter first number: 64
+Enter second number: 5
+
+[STEPS] Finding GCD of 64 and 5:
+----------------------------------------
+ Step 1: 64 = (12 * 5) + 4
+ Step 2: 5 = (1 * 4) + 1
+ Step 3: 4 = (4 * 1) + 0
+----------------------------------------
+FINAL GCD VALUE: 1
+========================================
+
+========================================
+      EUCLIDEAN ALGORITHM (GCD)
+========================================
+ (Enter '0' to exit)
+Enter first number: 0
+Exiting...
