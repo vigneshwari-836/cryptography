@@ -1,0 +1,154 @@
+def aes_cmac_manual():
+    # AES S-Box
+    SBOX = [
+        0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
+        0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
+        0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15,
+        0x04, 0xc7, 0x23, 0xc3, 0x18, 0x96, 0x05, 0x9a, 0x07, 0x12, 0x80, 0xe2, 0xeb, 0x27, 0xb2, 0x75,
+        0x09, 0x83, 0x2c, 0x1a, 0x1b, 0x6e, 0x5a, 0xa0, 0x52, 0x3b, 0xd6, 0xb3, 0x29, 0xe3, 0x2f, 0x84,
+        0x53, 0xd1, 0x00, 0xed, 0x20, 0xfc, 0xb1, 0x5b, 0x6a, 0xcb, 0xbe, 0x39, 0x4a, 0x4c, 0x58, 0xcf,
+        0xd0, 0xef, 0xaa, 0xfb, 0x43, 0x4d, 0x33, 0x85, 0x45, 0xf9, 0x02, 0x7f, 0x50, 0x3c, 0x9f, 0xa8,
+        0x51, 0xa3, 0x40, 0x8f, 0x92, 0x9d, 0x38, 0xf5, 0xbc, 0xb6, 0xda, 0x21, 0x10, 0xff, 0xf3, 0xd2,
+        0xcd, 0x0c, 0x13, 0xec, 0x5f, 0x97, 0x44, 0x17, 0xc4, 0xa7, 0x7e, 0x3d, 0x64, 0x5d, 0x19, 0x73,
+        0x60, 0x81, 0x4f, 0xdc, 0x22, 0x2a, 0x90, 0x88, 0x46, 0xee, 0xb8, 0x14, 0xde, 0x5e, 0x0b, 0xdb,
+        0xe0, 0x32, 0x3a, 0x0a, 0x49, 0x06, 0x24, 0x5c, 0xc2, 0xd3, 0xac, 0x62, 0x91, 0x95, 0xe4, 0x79,
+        0xe7, 0xc8, 0x37, 0x6d, 0x8d, 0xd5, 0x4e, 0xa9, 0x6c, 0x56, 0xf4, 0xea, 0x65, 0x7a, 0xae, 0x08,
+        0xba, 0x78, 0x25, 0x2e, 0x1c, 0xa6, 0xb4, 0xc6, 0xe8, 0xdd, 0x74, 0x1f, 0x4b, 0xbd, 0x8b, 0x8a,
+        0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e,
+        0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
+        0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16
+    ]
+
+    def xor_bytes(a, b):
+        return [x ^ y for x, y in zip(a, b)]
+    def aes_encrypt_block(state, key):
+        res = xor_bytes(state, key)
+        for _ in range(10):
+            res = [SBOX[b] for b in res]
+            res = xor_bytes(res, key)
+        return res
+
+    def left_shift(arr):
+        res = [0] * 16
+        carry = 0
+        for i in range(15, -1, -1):
+            res[i] = ((arr[i] << 1) | carry) & 0xff
+            carry = 1 if (arr[i] & 0x80) else 0
+        return res, carry
+
+    def generate_cmac(message_str, key_str):
+        key_str = key_str.ljust(16, '0')[:16]
+        key = [ord(c) for c in key_str]
+        msg = list(message_str.encode('utf-8'))
+        const_zero = [0] * 16
+        const_rb = [0] * 15 + [0x87]
+
+        L = aes_encrypt_block(const_zero, key)
+
+        k1, carry1 = left_shift(L)
+        if carry1:
+            k1 = xor_bytes(k1, const_rb)
+
+        k2, carry2 = left_shift(k1)
+        if carry2:
+            k2 = xor_bytes(k2, const_rb)
+        n = (len(msg) + 15) // 16
+        if n == 0:
+            n = 1
+
+        is_complete = (len(msg) > 0 and len(msg) % 16 == 0)
+        last_key = k1 if is_complete else k2
+
+        x_state = [0] * 16
+        for i in range(n - 1):
+            block = msg[i * 16 : (i + 1) * 16]
+            y_state = xor_bytes(x_state, block)
+            x_state = aes_encrypt_block(y_state, key)
+        last_block = msg[(n - 1) * 16 :]
+        if not is_complete:
+            last_block.append(0x80)
+            while len(last_block) < 16:
+                last_block.append(0x00)
+
+        final_input = xor_bytes(xor_bytes(last_block, x_state), last_key)
+        tag = aes_encrypt_block(final_input, key)
+
+        return "".join(f"{x:02x}" for x in tag)
+    msg_input = input("Enter your message: ")
+    key_input = input("Enter 16-character key: ")
+    cmac_tag = generate_cmac(msg_input, key_input)
+    print(f"CMAC Tag: {cmac_tag}")
+
+if __name__ == "__main__":
+    aes_cmac_manual()
+[23bcs070@mepcolinux ex6]$python3 cmac.py
+Enter your message: helloworld
+Enter 16-character key: 1234567812345678
+CMAC Tag: 3cbf3a353329b79cbbd0487d9f7cfd72
+[23bcs070@mepcolinux ex6]$cat sha.py
+import struct
+def sha256_scratch(message):
+    h = [
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    ]
+    k = [
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    ]
+    def rotr(x, n):
+        return ((x >> n) | (x << (32 - n))) & 0xFFFFFFFF
+    msg_bytes = bytearray(message, 'utf-8')
+    original_bit_len = len(msg_bytes) * 8
+    msg_bytes.append(0x80)
+    while (len(msg_bytes) % 64) != 56:
+        msg_bytes.append(0x00)
+    msg_bytes += struct.pack('>Q', original_bit_len)
+    for i in range(0, len(msg_bytes), 64):
+        chunk = msg_bytes[i:i+64]
+        w = list(struct.unpack('>16L', chunk))
+        for j in range(16, 64):
+            s0 = (rotr(w[j-15], 7) ^ rotr(w[j-15], 18) ^ (w[j-15] >> 3)) & 0xFFFFFFFF
+            s1 = (rotr(w[j-2], 17) ^ rotr(w[j-2], 19) ^ (w[j-2] >> 10)) & 0xFFFFFFFF
+            w.append((w[j-16] + s0 + w[j-7] + s1) & 0xFFFFFFFF)
+        a, b, c, d, e, f, g, h_v = h
+        for j in range(64):
+            S1 = (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) & 0xFFFFFFFF
+            ch = (e & f) ^ ((~e) & g)
+            temp1 = (h_v + S1 + ch + k[j] + w[j]) & 0xFFFFFFFF
+            S0 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) & 0xFFFFFFFF
+            maj = (a & b) ^ (a & c) ^ (b & c)
+            temp2 = (S0 + maj) & 0xFFFFFFFF
+            h_v = g
+            g = f
+            f = e
+            e = (d + temp1) & 0xFFFFFFFF
+            d = c
+            c = b
+            b = a
+            a = (temp1 + temp2) & 0xFFFFFFFF
+        h[0] = (h[0] + a) & 0xFFFFFFFF
+        h[1] = (h[1] + b) & 0xFFFFFFFF
+        h[2] = (h[2] + c) & 0xFFFFFFFF
+        h[3] = (h[3] + d) & 0xFFFFFFFF
+        h[4] = (h[4] + e) & 0xFFFFFFFF
+        h[5] = (h[5] + f) & 0xFFFFFFFF
+        h[6] = (h[6] + g) & 0xFFFFFFFF
+        h[7] = (h[7] + h_v) & 0xFFFFFFFF
+    return "".join(f"{x:08x}" for x in h)
+if __name__ == "__main__":
+    user_input = input("Type your message here: ")
+    if user_input:
+        result = sha256_scratch(user_input)
+        print(f"Result Hash: {result}")
+    else:
+        print("Please enter a message.")
+[23bcs070@mepcolinux ex6]$python3 sha.py
+Type your message here: hihelo
+Result Hash: 4842053c7f5276056c2e48c025d73f5eff5e3e510e1bf93a655701a8103caa36
